@@ -16,7 +16,7 @@ function newBook(book) {
                 <div class="content book" data-id="${book.id}">
                     <div class="book-meta">
                         <p class="is-size-4">R$${book.price.toFixed(2)}</p>
-                        <p class="is-size-6">Disponível em estoque: 5</p>
+                        <p class="is-size-6" id = "estoque">Unidades: ${book.quantity}</p>
                         <h4 class="is-size-3 title">${book.name}</h4>
                         <p class="subtitle">${book.author}</p>
                     </div>
@@ -28,12 +28,13 @@ function newBook(book) {
                             <a class="button button-shipping is-info" data-id="${book.id}"> Calcular Frete </a>
                         </div>
                     </div>
-                    <button class="button button-buy is-success is-fullwidth">Comprar</button>
+                    <button class="button button-buy is-success " data-id="${book.id}" style="width:40%">Comprar</button>
                 </div>
             </div>
         </div>`;
     return div;
 }
+
 
 function calculateShipping(id, cep) {
     fetch('http://localhost:3000/shipping/' + cep)
@@ -52,6 +53,31 @@ function calculateShipping(id, cep) {
         });
 }
 
+function updateQuantity(id) {
+    fetch('http://localhost:3000/book/' + id)
+        .then((data) => {
+            if (data.ok) {
+                return data.json();
+            }
+            throw data.statusText;
+        })
+        .then(function (data) {
+            let qtd = document.querySelectorAll(`.book #estoque`)[id - 1];
+            var txtNode = document.createTextNode("Unidades: " + data.quantity);
+
+            if (data.quantity > 0) {
+                qtd.replaceChild(txtNode, qtd.childNodes[0]);
+            } else {
+                $(".button-buy")[id - 1].setAttribute("disabled", "");
+                qtd.replaceChild(txtNode, qtd.childNodes[0]);
+            }
+        })
+        .catch((err) => {
+            swal('Erro', 'Erro ao ao finalizar compra', 'error');
+            console.error(err);
+        });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const books = document.querySelector('.books');
 
@@ -66,6 +92,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data) {
                 data.forEach((book) => {
                     books.appendChild(newBook(book));
+                    if (book.quantity == 0) {
+                        $(".button-buy")[book.id - 1].setAttribute("disabled", "");
+                    }
                 });
 
                 document.querySelectorAll('.button-shipping').forEach((btn) => {
@@ -78,6 +107,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 document.querySelectorAll('.button-buy').forEach((btn) => {
                     btn.addEventListener('click', (e) => {
+                        const id = e.target.getAttribute('data-id')
+                        updateQuantity(id);
                         swal('Compra de livro', 'Sua compra foi realizada com sucesso', 'success');
                     });
                 });
